@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @Data
 public class ProductInfoVO {
 
-    @JsonProperty("idzzz")
+    @JsonProperty("idttt")
     private String productId;
 
     @JsonProperty("name")
