@@ -24,6 +24,7 @@ public class OrderDetailRepositoryTest {
 
     @Test
     public void saveTest() {
+
         OrderDetail orderDetail = new OrderDetail();
         orderDetail.setDetailId("1234567810");
         orderDetail.setOrderId("11111112");

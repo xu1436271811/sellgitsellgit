@@ -175,6 +175,27 @@ public class OrderServiceImpl implements OrderService {
         return orderDTO;
     }
 
+    public OrderDTO mycancel(OrderDTO orderDTO) {
+        OrderMaster orderMaster = new OrderMaster();
+        if (orderMaster.getOrderStatus().equals(OrderStatusEnum.NEW.getCode())){
+           throw new SellException(ResultEnum.ORDER_STATUS_ERROR);
+        }
+        orderDTO.setOrderStatus(OrderStatusEnum.CANCEL.getCode());
+        BeanUtils.copyProperties(orderDTO,orderMaster);
+        OrderMaster resultMaster =   orderMasterRepository.save(orderMaster);
+        if (resultMaster == null) {
+            throw  new SellException(ResultEnum.ORDER_UPDATE_FAIL);
+        }
+        //更新库存
+        List<CartDTO> cartDTOList = orderDTO.getOrderDetailList().stream()
+                .map(e -> new CartDTO(e.getProductId(), e.getProductQuantity()))
+                .collect(Collectors.toList());
+        productService.increaseStock(cartDTOList);
+        //如果已经付款了，就要退钱
+        //TODO
+        return orderDTO;
+    }
+
     @Override
     @Transactional
     public OrderDTO finish(OrderDTO orderDTO) {
@@ -196,6 +217,23 @@ public class OrderServiceImpl implements OrderService {
 
         //推送微信模版消息
         pushMessageService.orderStatus(orderDTO);
+
+        return orderDTO;
+    }
+
+    public OrderDTO  myfinish(OrderDTO orderDTO) {
+        OrderMaster orderMaster = new OrderMaster();
+        //判断订单状态
+        if ( !orderDTO.getOrderStatus().equals(OrderStatusEnum.NEW.getCode()) ) {
+            throw new SellException(ResultEnum.ORDER_STATUS_ERROR);
+        }
+        //更改订单状态
+        orderDTO.setOrderStatus(OrderStatusEnum.FINISHED.getCode());
+        BeanUtils.copyProperties(orderDTO,orderMaster);
+        OrderMaster orderResult = orderMasterRepository.save(orderMaster);
+        if ( orderResult== null ){
+            throw new SellException(ResultEnum.ORDER_STATUS_ERROR);
+        }
 
         return orderDTO;
     }
@@ -228,8 +266,40 @@ public class OrderServiceImpl implements OrderService {
         return orderDTO;
     }
 
+
+    public OrderDTO mypaid(OrderDTO orderDTO) {
+        OrderMaster orderMaster = new OrderMaster();
+        //判断订单状态
+        if ( !orderDTO.getOrderStatus().equals(OrderStatusEnum.NEW.getCode()) ) {
+            throw  new SellException(ResultEnum.ORDER_STATUS_ERROR);
+        }
+        //判断支付状态
+        if ( !orderDTO.getPayStatus().equals( PayStatusEnum.WAIT ) ) {
+            throw  new SellException(ResultEnum.ORDER_PAY_STATUS_ERROR);
+        }
+        //更改订单状态
+        orderDTO.setPayStatus(PayStatusEnum.SUCCESS.getCode());
+        BeanUtils.copyProperties(orderDTO,orderMaster);
+        OrderMaster  orderResult =  orderMasterRepository.save(orderMaster);
+        if ( orderResult==null ){
+            throw  new SellException(ResultEnum.ORDER_UPDATE_FAIL);
+        }
+
+        return orderDTO;
+    }
+
+
     @Override
     public Page<OrderDTO> findList(Pageable pageable) {
+        Page<OrderMaster> orderMasterPage = orderMasterRepository.findAll(pageable);
+
+        List<OrderDTO> orderDTOList = OrderMaster2OrderDTOConverter.convert(orderMasterPage.getContent());
+
+        return new PageImpl<>(orderDTOList, pageable, orderMasterPage.getTotalElements());
+    }
+
+    public Page<OrderDTO> myfindList(Pageable pageable) {
+
         Page<OrderMaster> orderMasterPage = orderMasterRepository.findAll(pageable);
 
         List<OrderDTO> orderDTOList = OrderMaster2OrderDTOConverter.convert(orderMasterPage.getContent());

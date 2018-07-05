@@ -25,6 +25,7 @@ public class OrderForm {
     /**
      * 买家地址
      */
+
     @NotEmpty(message = "地址必填")
     private String address;
 

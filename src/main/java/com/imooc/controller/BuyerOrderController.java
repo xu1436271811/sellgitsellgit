@@ -62,6 +62,24 @@ public class BuyerOrderController {
         return ResultVOUtil.success(map);
     }
 
+
+    public ResultVO<Map<String, String>> mycreate(@Valid OrderForm orderForm,
+                                                BindingResult bindingResult) {
+      if ( bindingResult.hasErrors() ){
+          throw  new SellException(ResultEnum.PARAM_ERROR.getCode(),
+                  bindingResult.getFieldError().getDefaultMessage());
+      }
+      OrderDTO orderDTO = OrderForm2OrderDTOConverter.myconvert(orderForm);
+      if ( CollectionUtils.isEmpty(orderDTO.getOrderDetailList()) ) {
+          throw new SellException(ResultEnum.CART_EMPTY);
+      }
+      OrderDTO createorderResult =  orderService.create(orderDTO);
+      String orderId = createorderResult.getOrderId();
+      Map<String,String> map = new HashMap<>();
+
+      return  ResultVOUtil.success(map);
+    }
+
     //订单列表
     @GetMapping("/list")
     public ResultVO<List<OrderDTO>> list(@RequestParam("openid") String openid,
